@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>급식 정보</title>
+    <style>
+        #container {
+            display: flex;
+            justify-content: center;
+            text-align: center;
+            
+        }
+
+        #menu {
+            padding: 10px;
+            border: 3px solid #35910a;
+            border-radius: 5px;
+            background-color: #d5f03e;
+            margin: 10px;
+            width: 500px;
+            max-width: 90%;
+        } 
+
+        #meal-info {
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin: 10px;
+            min-height: 150px;
+            max-width: 90%; 
+        }   
+    </style>
+</head>
+<body >
+    <div id="container">
+       <div id="menu">
+       <h1 >급식 정보</h1>
+   
+       <label for="date-input">날짜 선택:</label>
+       <input type="date" id="date-input">
+       <button onclick="getMealInfo()">급식 정보 가져오기</button>
+   
+       <div id="meal-info"></div>
+       </div>
+    </div>
+
+    <script>
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function getMealInfo() {
+            const dateInput = document.getElementById('date-input');
+            const selectedDate = new Date(dateInput.value);
+            const formattedDate = formatDate(selectedDate);
+
+            // API 요청을 위한 파라미터
+            const params = {
+                type: 'xml', // 반환 형식 (XML을 사용합니다)
+                pindex: 1, // 페이지 인덱스
+                psize: 10, // 페이지 크기
+                MLSV_YMD: formattedDate, // 선택한 날짜 (YYYYMMDD 형식으로 변환한 값)
+                ATPT_OFCDC_SC_CODE: 'B10', // 교육청 코드
+                SD_SCHUL_CODE: '7010562' // 학교 코드
+            };
+
+            // API 요청
+            const apiUrl = new URL('https://open.neis.go.kr/hub/mealServiceDietInfo');
+
+            // 파라미터를 URL에 추가
+            Object.keys(params).forEach(key => apiUrl.searchParams.append(key, params[key]));
+
+            fetch(apiUrl)
+            .then(response => response.text()) // XML 형식으로 응답 파싱
+            .then(data => {
+                // API 응답 처리
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, 'text/xml');
+                const mealInfoElement = document.getElementById('meal-info');
+                mealInfoElement.innerHTML = ''; // 이전 데이터 초기화
+
+                // 원하는 정보 추출
+                const ddishNm = xmlDoc.querySelector('DDISH_NM').textContent;
+                // 줄바꿈 처리
+                const formattedDdishNm = ddishNm.replace(/<br\s*\/?>/gi, '<br>') ;
+                mealInfoElement.innerHTML = formattedDdishNm;
+            })
+            .catch(error => {
+                console.error('API 요청 중 오류 발생:', error);
+            });
+        }
+    </script>
+</body>
+</html>
